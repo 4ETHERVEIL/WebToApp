@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Download, Loader2, Globe, AlertCircle, CheckCircle2, History, Trash2, Hexagon } from 'lucide-react';
+import { Download, Loader2, Globe, AlertCircle, CheckCircle2, History, Trash2, Hexagon, Sparkles } from 'lucide-react';
 
 interface HistoryItem {
   id: string;
@@ -32,15 +32,19 @@ export default function Home() {
     if (saved) {
       try {
         setHistory(JSON.parse(saved));
-      } catch (e) {}
+      } catch (e) {
+        console.error('Failed to parse history', e);
+      }
     }
     const lastTime = localStorage.getItem('web2native_last_build');
-    if (lastTime) setLastBuildTime(Number(lastTime));
+    if (lastTime) {
+      setLastBuildTime(Number(lastTime));
+    }
   }, []);
 
   useEffect(() => {
     if (lastBuildTime) {
-      const interval = setInterval(() => {
+      const checkRateLimit = () => {
         const timeDiff = Date.now() - lastBuildTime;
         const oneDay = 24 * 60 * 60 * 1000;
         if (timeDiff < oneDay) {
@@ -48,11 +52,15 @@ export default function Home() {
           const h = Math.floor(remainingMs / (1000 * 60 * 60));
           const m = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
           const s = Math.floor((remainingMs % (1000 * 60)) / 1000);
-          setTimeRemaining(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+          const formatted = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+          setTimeRemaining(formatted);
         } else {
           setTimeRemaining(null);
         }
-      }, 1000);
+      };
+      
+      checkRateLimit();
+      const interval = setInterval(checkRateLimit, 1000);
       return () => clearInterval(interval);
     }
   }, [lastBuildTime]);
@@ -62,8 +70,18 @@ export default function Home() {
     localStorage.setItem('web2native_history', JSON.stringify(items));
   };
 
+  const updateHistoryItem = (id: string, updates: Partial<HistoryItem>) => {
+    setHistory(prev => {
+      const newHistory = prev.map(item => item.id === id ? { ...item, ...updates } : item);
+      localStorage.setItem('web2native_history', JSON.stringify(newHistory));
+      return newHistory;
+    });
+  };
+
   const clearHistory = () => {
-    if (confirm('Yakin ingin menghapus semua history?')) saveHistory([]);
+    if (confirm('Yakin ingin menghapus semua history?')) {
+      saveHistory([]);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,12 +96,15 @@ export default function Home() {
       const h = Math.floor(remainingMs / (1000 * 60 * 60));
       const m = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
       const s = Math.floor((remainingMs % (1000 * 60)) / 1000);
-      setError(`⚠️ Rate limit: 1 build per 24 hours. Wait ${h}h ${m}m ${s}s.`);
+      const formatted = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      setError(`⚠️ Rate limit maksimal riset 1 hari 1 kali. Anda sudah membuat aplikasi hari ini. Tunggu besok (${formatted} lagi) untuk membuat aplikasi baru.`);
       return;
     }
     
     let formattedUrl = websiteUrl.trim();
-    if (!/^https?:\/\//i.test(formattedUrl)) formattedUrl = 'https://' + formattedUrl;
+    if (!/^https?:\/\//i.test(formattedUrl)) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -94,20 +115,36 @@ export default function Home() {
     try {
       const response = await fetch('/api/build', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ appName, websiteUrl: formattedUrl }),
       });
+      
       const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.error || 'Build failed.');
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to initiate application build.');
+      }
       
       const newId = result.data.requestId;
       setRequestId(newId);
+      
       const now = Date.now();
       setLastBuildTime(now);
       localStorage.setItem('web2native_last_build', now.toString());
-      saveHistory([{ id: newId, appName, websiteUrl: formattedUrl, date: now, status: 'PROCESSING' }, ...history]);
+      
+      const newItem: HistoryItem = {
+        id: newId,
+        appName,
+        websiteUrl: formattedUrl,
+        date: now,
+        status: 'PROCESSING'
+      };
+      saveHistory([newItem, ...history]);
+      
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'System error occurred.');
       setIsLoading(false);
     }
   };
@@ -126,14 +163,16 @@ export default function Home() {
             setIsDone(true);
             setIsLoading(false);
             clearInterval(interval);
-            setHistory(prev => {
-              const newHistory = prev.map(item => item.id === requestId ? { ...item, status: 'DONE', androidUrl: data.android_url, iosUrl: data.ios_url } : item);
-              localStorage.setItem('web2native_history', JSON.stringify(newHistory));
-              return newHistory;
+            updateHistoryItem(requestId, {
+              status: 'DONE',
+              androidUrl: data.android_url,
+              iosUrl: data.ios_url
             });
           }
         }
-      } catch (err) {}
+      } catch (err) {
+        console.error('Failed to check status', err);
+      }
     };
     if (requestId && !isDone) {
       checkStatus();
@@ -143,111 +182,257 @@ export default function Home() {
   }, [requestId, isDone]);
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '4px solid black', paddingBottom: '1rem' }}>
-        <div className="neo-card" style={{ padding: '0.5rem 1rem', cursor: 'pointer' }} onClick={() => setShowHistory(false)}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Hexagon size={24} />
-            <div>
-              <div style={{ fontWeight: 'bold', fontSize: '1.25rem' }}>SCRAPENATIVE</div>
-              <div style={{ fontSize: '0.6rem' }}>NEO-BRUTAL</div>
-            </div>
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem 1rem', minHeight: '100vh' }}>
+      
+      {/* Header dengan Glass Effect */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div 
+          className="glass-neo" 
+          style={{ padding: '0.75rem 1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }} 
+          onClick={() => setShowHistory(false)}
+        >
+          <Sparkles size={24} style={{ color: '#ffd700' }} />
+          <div>
+            <div style={{ fontWeight: '900', fontSize: '1.25rem', letterSpacing: '-0.05em' }}>SCRAPENATIVE</div>
+            <div style={{ fontSize: '0.6rem', fontWeight: 'bold', opacity: 0.7 }}>NEO • GLASS</div>
           </div>
         </div>
-        <button className="neo-button" style={{ padding: '0.5rem' }} onClick={() => setShowHistory(!showHistory)}>
+        
+        <button 
+          className="glass-neo" 
+          style={{ padding: '0.75rem 1.25rem', border: '3px solid black', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} 
+          onClick={() => setShowHistory(!showHistory)}
+        >
           <History size={20} />
+          <span style={{ fontWeight: 'bold' }}>HISTORY</span>
         </button>
       </div>
 
       <AnimatePresence mode="wait">
         {showHistory ? (
-          <motion.div key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="neo-card" style={{ padding: '1rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontWeight: 'bold' }}>📁 HISTORY</h2>
-              {history.length > 0 && <button className="neo-button" style={{ background: '#ff3366', padding: '0.25rem 0.75rem', fontSize: '0.75rem' }} onClick={clearHistory}>CLEAR</button>}
+          <motion.div 
+            key="history" 
+            initial={{ opacity: 0, y: -20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: 20 }}
+          >
+            <div className="glass-neo" style={{ padding: '1.5rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <h2 style={{ fontWeight: 'bold', fontSize: '1.5rem' }}>📁 BUILD HISTORY</h2>
+                {history.length > 0 && (
+                  <button 
+                    className="neo-button" 
+                    style={{ background: '#ff3366', padding: '0.5rem 1rem', fontSize: '0.75rem', cursor: 'pointer' }} 
+                    onClick={clearHistory}
+                  >
+                    <Trash2 size={14} style={{ display: 'inline', marginRight: '0.25rem' }} /> CLEAR ALL
+                  </button>
+                )}
+              </div>
             </div>
+            
             {history.length === 0 ? (
-              <div className="neo-card" style={{ padding: '3rem', textAlign: 'center' }}>
-                <p style={{ fontWeight: 'bold' }}>NO BUILDS YET</p>
+              <div className="glass-neo" style={{ padding: '3rem', textAlign: 'center' }}>
+                <History size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                <p style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>NO BUILDS YET</p>
+                <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', opacity: 0.7 }}>Start your first conversion ☝️</p>
               </div>
             ) : (
-              history.map(item => (
-                <div key={item.id} className="neo-card" style={{ padding: '1rem', marginBottom: '1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                    <div>
-                      <h3 style={{ fontWeight: 'bold' }}>{item.appName}</h3>
-                      <p style={{ fontSize: '0.75rem' }}>{item.websiteUrl}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {history.map((item) => (
+                  <div key={item.id} className="glass-neo" style={{ padding: '1.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div>
+                        <h3 style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{item.appName}</h3>
+                        <p style={{ fontSize: '0.7rem', fontFamily: 'monospace', opacity: 0.7, wordBreak: 'break-all' }}>{item.websiteUrl}</p>
+                      </div>
+                      <span 
+                        className="neo-border" 
+                        style={{ 
+                          padding: '0.25rem 0.75rem', 
+                          fontSize: '0.65rem', 
+                          fontWeight: 'bold', 
+                          background: item.status === 'DONE' ? '#a3e635' : '#fbbf24',
+                          display: 'inline-block',
+                          alignSelf: 'flex-start'
+                        }}
+                      >
+                        {item.status}
+                      </span>
                     </div>
-                    <span className="neo-border" style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: item.status === 'DONE' ? '#a3e635' : '#fbbf24' }}>{item.status}</span>
+                    
+                    {item.status === 'DONE' ? (
+                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        {item.androidUrl && (
+                          <a 
+                            href={item.androidUrl} 
+                            className="neo-button-glass" 
+                            style={{ flex: 1, textAlign: 'center', padding: '0.75rem', textDecoration: 'none', display: 'block', minWidth: '120px', cursor: 'pointer' }}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            📱 ANDROID
+                          </a>
+                        )}
+                        {item.iosUrl && (
+                          <a 
+                            href={item.iosUrl} 
+                            className="neo-button-glass" 
+                            style={{ flex: 1, textAlign: 'center', padding: '0.75rem', textDecoration: 'none', display: 'block', minWidth: '120px', background: 'rgba(255,255,255,0.9)', color: 'black', border: '3px solid black', cursor: 'pointer' }}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            🍎 iOS
+                          </a>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="neo-border" style={{ padding: '0.75rem', textAlign: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', color: 'white' }}>
+                        <Loader2 size={16} style={{ display: 'inline', animation: 'spin 1s linear infinite', marginRight: '0.5rem' }} /> COMPILING...
+                      </div>
+                    )}
                   </div>
-                  {item.status === 'DONE' ? (
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      {item.androidUrl && <a href={item.androidUrl} className="neo-button" style={{ flex: 1, textAlign: 'center', padding: '0.75rem', textDecoration: 'none' }}>📱 ANDROID</a>}
-                      {item.iosUrl && <a href={item.iosUrl} className="neo-button" style={{ flex: 1, textAlign: 'center', padding: '0.75rem', textDecoration: 'none', background: 'white', color: 'black' }}>🍎 iOS</a>}
-                    </div>
-                  ) : (
-                    <div className="neo-border" style={{ padding: '0.75rem', textAlign: 'center', background: '#f3f4f6' }}><Loader2 style={{ display: 'inline', animation: 'spin 1s linear infinite' }} /> BUILDING...</div>
-                  )}
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </motion.div>
         ) : (
-          <motion.div key="build" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            {/* Hero */}
-            <div className="neo-card" style={{ padding: '2rem', textAlign: 'center', marginBottom: '1.5rem' }}>
-              <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>WEB → <span style={{ background: '#ffd700', padding: '0 0.25rem' }}>NATIVE</span></h1>
-              <p style={{ fontWeight: 'bold', fontSize: '0.875rem' }}>ZERO CODE • ANDROID & iOS • 100% FREE</p>
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '1rem' }}>
-                <span className="neo-border" style={{ padding: '0.25rem 0.75rem', fontSize: '0.7rem' }}>⚡ FAST</span>
-                <span className="neo-border" style={{ padding: '0.25rem 0.75rem', fontSize: '0.7rem' }}>🔒 SECURE</span>
-                <span className="neo-border" style={{ padding: '0.25rem 0.75rem', fontSize: '0.7rem' }}>📱 NATIVE</span>
+          <motion.div 
+            key="build" 
+            initial={{ opacity: 0, y: -20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: 20 }}
+          >
+            {/* Hero Section - Glass */}
+            <div className="glass-neo" style={{ padding: '2rem', textAlign: 'center', marginBottom: '1.5rem' }}>
+              <h1 style={{ fontSize: '2.5rem', fontWeight: '900', letterSpacing: '-0.05em', marginBottom: '0.75rem' }}>
+                WEB → <span style={{ background: '#ffd700', padding: '0 0.5rem', display: 'inline-block' }}>NATIVE</span>
+              </h1>
+              <p style={{ fontWeight: 'bold', fontSize: '0.85rem', letterSpacing: '0.05em' }}>ZERO CODE • ANDROID & iOS • 100% FREE</p>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.25rem', flexWrap: 'wrap' }}>
+                <span className="neo-border" style={{ padding: '0.35rem 1rem', fontSize: '0.7rem', fontWeight: 'bold', background: 'rgba(0,0,0,0.1)', backdropFilter: 'blur(4px)' }}>⚡ FAST</span>
+                <span className="neo-border" style={{ padding: '0.35rem 1rem', fontSize: '0.7rem', fontWeight: 'bold', background: 'rgba(0,0,0,0.1)', backdropFilter: 'blur(4px)' }}>🔒 SECURE</span>
+                <span className="neo-border" style={{ padding: '0.35rem 1rem', fontSize: '0.7rem', fontWeight: 'bold', background: 'rgba(0,0,0,0.1)', backdropFilter: 'blur(4px)' }}>📱 NATIVE</span>
               </div>
             </div>
 
-            {/* Form */}
-            <div className="neo-card" style={{ overflow: 'hidden' }}>
-              <div style={{ padding: '1.5rem' }}>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '0.5rem' }}>APP NAME</label>
-                  <input className="neo-input" type="text" placeholder="MyAwesomeApp" value={appName} onChange={(e) => setAppName(e.target.value)} disabled={isLoading || isDone || !!requestId || !!timeRemaining} />
+            {/* Form Section - Glass */}
+            <div className="glass-neo" style={{ overflow: 'hidden' }}>
+              <div style={{ padding: '1.75rem' }}>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '0.5rem', fontSize: '0.8rem', letterSpacing: '0.05em' }}>APP NAME</label>
+                  <input 
+                    className="neo-input" 
+                    type="text" 
+                    placeholder="MyAwesomeApp" 
+                    value={appName} 
+                    onChange={(e) => setAppName(e.target.value)} 
+                    disabled={isLoading || isDone || !!requestId || !!timeRemaining}
+                  />
                 </div>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '0.5rem' }}>WEBSITE URL</label>
+                
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '0.5rem', fontSize: '0.8rem', letterSpacing: '0.05em' }}>WEBSITE URL</label>
                   <div style={{ position: 'relative' }}>
-                    <Globe style={{ position: 'absolute', left: '1rem', top: '1rem' }} size={20} />
-                    <input className="neo-input" style={{ paddingLeft: '2.5rem' }} type="text" placeholder="https://example.com" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} disabled={isLoading || isDone || !!requestId || !!timeRemaining} />
+                    <Globe size={18} style={{ position: 'absolute', left: '1rem', top: '1rem', opacity: 0.6 }} />
+                    <input 
+                      className="neo-input" 
+                      style={{ paddingLeft: '2.75rem' }} 
+                      type="text" 
+                      placeholder="https://example.com" 
+                      value={websiteUrl} 
+                      onChange={(e) => setWebsiteUrl(e.target.value)} 
+                      disabled={isLoading || isDone || !!requestId || !!timeRemaining}
+                    />
                   </div>
                 </div>
-                {error && <div className="neo-border" style={{ padding: '0.75rem', background: '#fee2e2', marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}><AlertCircle size={18} /> {error}</div>}
-                {timeRemaining && <div className="neo-border" style={{ padding: '0.75rem', background: '#fef3c7', textAlign: 'center', fontWeight: 'bold', marginBottom: '1rem' }}>⏱️ LIMIT: {timeRemaining}</div>}
+                
+                {error && (
+                  <div className="neo-border" style={{ padding: '0.85rem', background: 'rgba(255, 51, 102, 0.2)', backdropFilter: 'blur(8px)', marginBottom: '1rem', display: 'flex', gap: '0.5rem', fontWeight: 'bold' }}>
+                    <AlertCircle size={18} /> {error}
+                  </div>
+                )}
+                
+                {timeRemaining && !error && (
+                  <div className="neo-border" style={{ padding: '0.85rem', background: 'rgba(255, 215, 0, 0.2)', backdropFilter: 'blur(8px)', textAlign: 'center', fontWeight: 'bold', marginBottom: '1rem' }}>
+                    ⏱️ RATE LIMIT: {timeRemaining} REMAINING
+                  </div>
+                )}
               </div>
-              <div style={{ borderTop: '3px solid black', padding: '1.5rem', background: '#fafafa' }}>
+              
+              <div style={{ borderTop: '3px solid black', padding: '1.5rem', background: 'rgba(0, 0, 0, 0.05)', backdropFilter: 'blur(4px)' }}>
                 {!requestId && !isDone && (
-                  <button className="neo-button" style={{ width: '100%', padding: '1rem', fontSize: '1.1rem' }} onClick={handleSubmit} disabled={isLoading || !!timeRemaining}>
-                    {timeRemaining ? '🚫 LIMIT REACHED' : isLoading ? <><Loader2 style={{ display: 'inline', animation: 'spin 1s linear infinite' }} /> PROCESSING...</> : '⚡ BUILD NOW'}
+                  <button 
+                    className="neo-button" 
+                    style={{ width: '100%', padding: '1rem', fontSize: '1rem', cursor: 'pointer' }} 
+                    onClick={handleSubmit} 
+                    disabled={isLoading || !!timeRemaining}
+                  >
+                    {timeRemaining ? '🚫 LIMIT REACHED' : isLoading ? <><Loader2 size={18} style={{ display: 'inline', animation: 'spin 1s linear infinite', marginRight: '0.5rem' }} /> PROCESSING...</> : '⚡ BUILD NOW ⚡'}
                   </button>
                 )}
+                
                 {(requestId || isLoading || isDone) && (
                   <div>
-                    <div className="neo-card" style={{ padding: '1rem', marginBottom: '1rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontWeight: 'bold' }}>STATUS</span>
-                        <span>{isDone ? '✓ COMPLETED' : <><Loader2 style={{ display: 'inline', animation: 'spin 1s linear infinite' }} /> BUILDING</>}</span>
+                    <div className="glass-neo-dark" style={{ padding: '1rem', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <span style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>BUILD STATUS</span>
+                        <span style={{ fontWeight: 'bold', fontSize: '0.8rem' }}>
+                          {isDone ? <><CheckCircle2 size={16} style={{ display: 'inline', marginRight: '0.25rem', color: '#a3e635' }} /> COMPLETED</> : <><Loader2 size={14} style={{ display: 'inline', animation: 'spin 1s linear infinite', marginRight: '0.25rem' }} /> IN PROGRESS</>}
+                        </span>
                       </div>
                     </div>
+                    
                     {buildStatus && (
-                      <div className="neo-border" style={{ padding: '1rem', marginBottom: '1rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><span>📱 ANDROID</span><span>{buildStatus.android_status || 'WAITING'}</span></div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>🍎 iOS</span><span>{buildStatus.ios_status || 'WAITING'}</span></div>
+                      <div className="glass-neo-dark" style={{ padding: '1rem', marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                          <span>📱 ANDROID</span>
+                          <span style={{ fontWeight: 'bold' }}>{buildStatus.android_status || 'WAITING'}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span>🍎 iOS</span>
+                          <span style={{ fontWeight: 'bold' }}>{buildStatus.ios_status || 'WAITING'}</span>
+                        </div>
                       </div>
                     )}
+                    
                     {isDone && buildStatus && (
                       <div>
-                        {buildStatus.android_url && <a href={buildStatus.android_url} className="neo-button" style={{ display: 'block', textAlign: 'center', padding: '1rem', marginBottom: '0.5rem', textDecoration: 'none' }}>📱 DOWNLOAD ANDROID</a>}
-                        {buildStatus.ios_url && <a href={buildStatus.ios_url} className="neo-button" style={{ display: 'block', textAlign: 'center', padding: '1rem', marginBottom: '0.5rem', textDecoration: 'none', background: 'white', color: 'black' }}>🍎 DOWNLOAD iOS</a>}
-                        <button className="neo-button" style={{ width: '100%', padding: '0.75rem', background: '#e5e5e5', color: 'black' }} onClick={() => { setIsDone(false); setBuildStatus(null); setRequestId(null); setAppName(''); setWebsiteUrl(''); }}>➕ NEW CONVERSION</button>
+                        {buildStatus.android_url && (
+                          <a 
+                            href={buildStatus.android_url} 
+                            className="neo-button-glass" 
+                            style={{ display: 'block', textAlign: 'center', padding: '1rem', marginBottom: '0.75rem', textDecoration: 'none', cursor: 'pointer' }}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            📱 DOWNLOAD ANDROID APK
+                          </a>
+                        )}
+                        {buildStatus.ios_url && (
+                          <a 
+                            href={buildStatus.ios_url} 
+                            className="neo-button-glass" 
+                            style={{ display: 'block', textAlign: 'center', padding: '1rem', marginBottom: '0.75rem', textDecoration: 'none', background: 'rgba(255,255,255,0.9)', color: 'black', border: '3px solid black', cursor: 'pointer' }}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            🍎 DOWNLOAD iOS IPA
+                          </a>
+                        )}
+                        <button 
+                          className="neo-button" 
+                          style={{ width: '100%', padding: '0.85rem', background: 'rgba(255,255,255,0.2)', color: 'black', border: '3px solid black', cursor: 'pointer' }} 
+                          onClick={() => { 
+                            setIsDone(false); 
+                            setBuildStatus(null); 
+                            setRequestId(null); 
+                            setAppName(''); 
+                            setWebsiteUrl('');
+                          }}
+                        >
+                          ➕ START NEW CONVERSION
+                        </button>
                       </div>
                     )}
                   </div>
@@ -255,16 +440,22 @@ export default function Home() {
               </div>
             </div>
 
-            {/* How it works */}
-            <div className="neo-card" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
-              <h3 style={{ fontWeight: 'bold', fontSize: '1.25rem', textAlign: 'center', marginBottom: '1rem' }}>⚙️ HOW IT WORKS</h3>
-              {['Enter your app name and website URL', 'System wraps your site in native container', 'Download APK & IPA'].map((step, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', border: '2px solid black', padding: '0.75rem' }}>
-                  <div style={{ width: '2rem', height: '2rem', background: 'black', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{i + 1}</div>
-                  <span style={{ fontWeight: 'bold' }}>{step}</span>
+            {/* How it works - Glass */}
+            <div className="glass-neo" style={{ padding: '1.75rem', marginTop: '1.5rem' }}>
+              <h3 style={{ fontWeight: '900', fontSize: '1.25rem', textAlign: 'center', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <Sparkles size={20} /> HOW IT WORKS <Sparkles size={20} />
+              </h3>
+              {[
+                { step: '1', text: 'Enter your app name and website URL' },
+                { step: '2', text: 'System wraps your site in native container' },
+                { step: '3', text: 'Download APK (Android) & IPA (iOS)' }
+              ].map((item, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', border: '2px solid black', padding: '0.85rem', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)' }}>
+                  <div style={{ width: '2rem', height: '2rem', background: 'black', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1rem' }}>{item.step}</div>
+                  <span style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>{item.text}</span>
                 </div>
               ))}
-              <div style={{ borderTop: '2px solid black', marginTop: '1rem', paddingTop: '1rem', textAlign: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
+              <div style={{ borderTop: '2px solid black', marginTop: '1.25rem', paddingTop: '1rem', textAlign: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
                 POWERED BY SANN404 FORUM
               </div>
             </div>
