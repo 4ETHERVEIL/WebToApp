@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Neo-Brutalism + Background Image */
+/* Neo-Brutalism + Glassmorphism pada Box */
 :root {
   --black: #000000;
   --white: #ffffff;
@@ -16,35 +16,18 @@
   box-sizing: border-box;
 }
 
-/* Background Image dari URL */
+/* Background solid (tidak blur) */
 body {
-  background-image: url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070&auto=format&fit=crop');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-  position: relative;
-  min-height: 100vh;
+  background: #f0f0f0;
   font-family: 'Courier New', 'Space Mono', monospace;
+  min-height: 100vh;
+  padding: 2rem;
 }
 
-/* Overlay gelap + blur agar teks terbaca */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
-  z-index: -1;
-}
-
-/* Glassmorphism + Neo Border */
+/* Glassmorphism pada BOX/CARD (bukan background) */
 .glass-neo {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(16px);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
   border: 3px solid var(--black);
   box-shadow: var(--shadow-neo);
   transition: all 0.1s ease;
@@ -56,8 +39,8 @@ body::before {
 }
 
 .glass-neo-dark {
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(16px);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
   border: 3px solid var(--white);
   box-shadow: var(--shadow-neo);
   color: var(--white);
@@ -143,11 +126,11 @@ body::before {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(4px);
+  background: #ddd;
+  border-left: 2px solid var(--black);
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--black);
-  border: 2px solid var(--white);
+  border: 2px solid #ddd;
 }
