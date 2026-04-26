@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Web2Native - ZYCHO',
+  title: 'Web2App - ZYCHO',
   description: 'Convert your website into a native Android and iOS application easily. Developed by SANN404 FORUM.',
 };
 
