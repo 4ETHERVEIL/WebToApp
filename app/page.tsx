@@ -193,7 +193,7 @@ export default function Home() {
         >
           <Sparkles size={24} style={{ color: '#ffd700' }} />
           <div>
-            <div style={{ fontWeight: '900', fontSize: '1.25rem', letterSpacing: '-0.05em' }}>SCRAPENATIVE</div>
+            <div style={{ fontWeight: '900', fontSize: '1.25rem', letterSpacing: '-0.05em' }}>WEBtoAPP</div>
             <div style={{ fontSize: '0.6rem', fontWeight: 'bold', opacity: 0.8 }}>NEO • GLASS</div>
           </div>
         </div>
@@ -309,7 +309,7 @@ export default function Home() {
               <h1 style={{ fontSize: '2.5rem', fontWeight: '900', letterSpacing: '-0.05em', marginBottom: '0.75rem' }}>
                 WEB → <span style={{ background: '#ffd700', padding: '0 0.5rem', display: 'inline-block', color: 'black' }}>NATIVE</span>
               </h1>
-              <p style={{ fontWeight: 'bold', fontSize: '0.85rem', letterSpacing: '0.05em' }}>ZERO CODE • ANDROID & iOS • 100% FREE</p>
+              <p style={{ fontWeight: 'bold', fontSize: '0.85rem', letterSpacing: '0.05em' }}> ANDROID & iOS • 100% FREE</p>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.25rem', flexWrap: 'wrap' }}>
                 <span className="neo-border" style={{ padding: '0.35rem 1rem', fontSize: '0.7rem', fontWeight: 'bold', background: 'rgba(255,255,255,0.2)' }}>⚡ FAST</span>
                 <span className="neo-border" style={{ padding: '0.35rem 1rem', fontSize: '0.7rem', fontWeight: 'bold', background: 'rgba(255,255,255,0.2)' }}>🔒 SECURE</span>
