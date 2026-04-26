@@ -457,7 +457,7 @@ export default function Home() {
                 </div>
               ))}
               <div style={{ borderTop: '2px solid rgba(255,255,255,0.3)', marginTop: '1.25rem', paddingTop: '1rem', textAlign: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                POWERED BY SANN404 FORUM
+                POWERED BY ZYCHO
               </div>
             </div>
           </motion.div>
