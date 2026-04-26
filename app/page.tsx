@@ -97,7 +97,7 @@ export default function Home() {
       const m = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
       const s = Math.floor((remainingMs % (1000 * 60)) / 1000);
       const formatted = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-      setError(`⚠️ Rate limit maksimal riset 1 hari 1 kali. Anda sudah membuat aplikasi hari ini. Tunggu besok (${formatted} lagi) untuk membuat aplikasi baru.`);
+      setError(`⚠️ Rate limit: 1 build per 24 hours. Wait ${formatted}`);
       return;
     }
     
@@ -182,9 +182,9 @@ export default function Home() {
   }, [requestId, isDone]);
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem 1rem', minHeight: '100vh' }}>
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '1rem', minHeight: '100vh' }}>
       
-      {/* Header dengan Glass Effect */}
+      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div 
           className="glass-neo" 
@@ -194,13 +194,13 @@ export default function Home() {
           <Sparkles size={24} style={{ color: '#ffd700' }} />
           <div>
             <div style={{ fontWeight: '900', fontSize: '1.25rem', letterSpacing: '-0.05em' }}>SCRAPENATIVE</div>
-            <div style={{ fontSize: '0.6rem', fontWeight: 'bold', opacity: 0.7 }}>NEO • GLASS</div>
+            <div style={{ fontSize: '0.6rem', fontWeight: 'bold', opacity: 0.8 }}>NEO • GLASS</div>
           </div>
         </div>
         
         <button 
           className="glass-neo" 
-          style={{ padding: '0.75rem 1.25rem', border: '3px solid black', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} 
+          style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} 
           onClick={() => setShowHistory(!showHistory)}
         >
           <History size={20} />
@@ -253,6 +253,7 @@ export default function Home() {
                           fontSize: '0.65rem', 
                           fontWeight: 'bold', 
                           background: item.status === 'DONE' ? '#a3e635' : '#fbbf24',
+                          color: 'black',
                           display: 'inline-block',
                           alignSelf: 'flex-start'
                         }}
@@ -278,7 +279,7 @@ export default function Home() {
                           <a 
                             href={item.iosUrl} 
                             className="neo-button-glass" 
-                            style={{ flex: 1, textAlign: 'center', padding: '0.75rem', textDecoration: 'none', display: 'block', minWidth: '120px', background: 'rgba(255,255,255,0.9)', color: 'black', border: '3px solid black', cursor: 'pointer' }}
+                            style={{ flex: 1, textAlign: 'center', padding: '0.75rem', textDecoration: 'none', display: 'block', minWidth: '120px', background: 'rgba(255,255,255,0.9)', color: 'black', cursor: 'pointer' }}
                             target="_blank"
                             rel="noreferrer"
                           >
@@ -287,7 +288,7 @@ export default function Home() {
                         )}
                       </div>
                     ) : (
-                      <div className="neo-border" style={{ padding: '0.75rem', textAlign: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', color: 'white' }}>
+                      <div className="neo-border" style={{ padding: '0.75rem', textAlign: 'center', background: 'rgba(0,0,0,0.5)', color: 'white' }}>
                         <Loader2 size={16} style={{ display: 'inline', animation: 'spin 1s linear infinite', marginRight: '0.5rem' }} /> COMPILING...
                       </div>
                     )}
@@ -303,20 +304,20 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }} 
             exit={{ opacity: 0, y: 20 }}
           >
-            {/* Hero Section - Glass */}
+            {/* Hero Section */}
             <div className="glass-neo" style={{ padding: '2rem', textAlign: 'center', marginBottom: '1.5rem' }}>
               <h1 style={{ fontSize: '2.5rem', fontWeight: '900', letterSpacing: '-0.05em', marginBottom: '0.75rem' }}>
-                WEB → <span style={{ background: '#ffd700', padding: '0 0.5rem', display: 'inline-block' }}>NATIVE</span>
+                WEB → <span style={{ background: '#ffd700', padding: '0 0.5rem', display: 'inline-block', color: 'black' }}>NATIVE</span>
               </h1>
               <p style={{ fontWeight: 'bold', fontSize: '0.85rem', letterSpacing: '0.05em' }}>ZERO CODE • ANDROID & iOS • 100% FREE</p>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.25rem', flexWrap: 'wrap' }}>
-                <span className="neo-border" style={{ padding: '0.35rem 1rem', fontSize: '0.7rem', fontWeight: 'bold', background: 'rgba(0,0,0,0.1)', backdropFilter: 'blur(4px)' }}>⚡ FAST</span>
-                <span className="neo-border" style={{ padding: '0.35rem 1rem', fontSize: '0.7rem', fontWeight: 'bold', background: 'rgba(0,0,0,0.1)', backdropFilter: 'blur(4px)' }}>🔒 SECURE</span>
-                <span className="neo-border" style={{ padding: '0.35rem 1rem', fontSize: '0.7rem', fontWeight: 'bold', background: 'rgba(0,0,0,0.1)', backdropFilter: 'blur(4px)' }}>📱 NATIVE</span>
+                <span className="neo-border" style={{ padding: '0.35rem 1rem', fontSize: '0.7rem', fontWeight: 'bold', background: 'rgba(255,255,255,0.2)' }}>⚡ FAST</span>
+                <span className="neo-border" style={{ padding: '0.35rem 1rem', fontSize: '0.7rem', fontWeight: 'bold', background: 'rgba(255,255,255,0.2)' }}>🔒 SECURE</span>
+                <span className="neo-border" style={{ padding: '0.35rem 1rem', fontSize: '0.7rem', fontWeight: 'bold', background: 'rgba(255,255,255,0.2)' }}>📱 NATIVE</span>
               </div>
             </div>
 
-            {/* Form Section - Glass */}
+            {/* Form Section */}
             <div className="glass-neo" style={{ overflow: 'hidden' }}>
               <div style={{ padding: '1.75rem' }}>
                 <div style={{ marginBottom: '1.25rem' }}>
@@ -348,19 +349,19 @@ export default function Home() {
                 </div>
                 
                 {error && (
-                  <div className="neo-border" style={{ padding: '0.85rem', background: 'rgba(255, 51, 102, 0.2)', backdropFilter: 'blur(8px)', marginBottom: '1rem', display: 'flex', gap: '0.5rem', fontWeight: 'bold' }}>
+                  <div className="neo-border" style={{ padding: '0.85rem', background: 'rgba(255, 51, 102, 0.3)', marginBottom: '1rem', display: 'flex', gap: '0.5rem', fontWeight: 'bold' }}>
                     <AlertCircle size={18} /> {error}
                   </div>
                 )}
                 
                 {timeRemaining && !error && (
-                  <div className="neo-border" style={{ padding: '0.85rem', background: 'rgba(255, 215, 0, 0.2)', backdropFilter: 'blur(8px)', textAlign: 'center', fontWeight: 'bold', marginBottom: '1rem' }}>
+                  <div className="neo-border" style={{ padding: '0.85rem', background: 'rgba(255, 215, 0, 0.2)', textAlign: 'center', fontWeight: 'bold', marginBottom: '1rem' }}>
                     ⏱️ RATE LIMIT: {timeRemaining} REMAINING
                   </div>
                 )}
               </div>
               
-              <div style={{ borderTop: '3px solid black', padding: '1.5rem', background: 'rgba(0, 0, 0, 0.05)', backdropFilter: 'blur(4px)' }}>
+              <div style={{ borderTop: '3px solid rgba(255,255,255,0.3)', padding: '1.5rem', background: 'rgba(0,0,0,0.2)' }}>
                 {!requestId && !isDone && (
                   <button 
                     className="neo-button" 
@@ -413,7 +414,7 @@ export default function Home() {
                           <a 
                             href={buildStatus.ios_url} 
                             className="neo-button-glass" 
-                            style={{ display: 'block', textAlign: 'center', padding: '1rem', marginBottom: '0.75rem', textDecoration: 'none', background: 'rgba(255,255,255,0.9)', color: 'black', border: '3px solid black', cursor: 'pointer' }}
+                            style={{ display: 'block', textAlign: 'center', padding: '1rem', marginBottom: '0.75rem', textDecoration: 'none', background: 'rgba(255,255,255,0.9)', color: 'black', cursor: 'pointer' }}
                             target="_blank"
                             rel="noreferrer"
                           >
@@ -422,7 +423,7 @@ export default function Home() {
                         )}
                         <button 
                           className="neo-button" 
-                          style={{ width: '100%', padding: '0.85rem', background: 'rgba(255,255,255,0.2)', color: 'black', border: '3px solid black', cursor: 'pointer' }} 
+                          style={{ width: '100%', padding: '0.85rem', background: 'rgba(255,255,255,0.2)', color: 'white', cursor: 'pointer' }} 
                           onClick={() => { 
                             setIsDone(false); 
                             setBuildStatus(null); 
@@ -440,7 +441,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* How it works - Glass */}
+            {/* How it works */}
             <div className="glass-neo" style={{ padding: '1.75rem', marginTop: '1.5rem' }}>
               <h3 style={{ fontWeight: '900', fontSize: '1.25rem', textAlign: 'center', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                 <Sparkles size={20} /> HOW IT WORKS <Sparkles size={20} />
@@ -450,12 +451,12 @@ export default function Home() {
                 { step: '2', text: 'System wraps your site in native container' },
                 { step: '3', text: 'Download APK (Android) & IPA (iOS)' }
               ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', border: '2px solid black', padding: '0.85rem', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)' }}>
-                  <div style={{ width: '2rem', height: '2rem', background: 'black', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1rem' }}>{item.step}</div>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', border: '2px solid rgba(255,255,255,0.3)', padding: '0.85rem', background: 'rgba(255,255,255,0.1)' }}>
+                  <div style={{ width: '2rem', height: '2rem', background: 'white', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1rem' }}>{item.step}</div>
                   <span style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>{item.text}</span>
                 </div>
               ))}
-              <div style={{ borderTop: '2px solid black', marginTop: '1.25rem', paddingTop: '1rem', textAlign: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
+              <div style={{ borderTop: '2px solid rgba(255,255,255,0.3)', marginTop: '1.25rem', paddingTop: '1rem', textAlign: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
                 POWERED BY SANN404 FORUM
               </div>
             </div>
