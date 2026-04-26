@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Download, Loader2, Globe, AlertCircle, CheckCircle2, History, Trash2, LayoutTemplate, Layers, Cpu, Code, Hexagon } from 'lucide-react';
+import { Download, Loader2, Globe, AlertCircle, CheckCircle2, History, Trash2, Hexagon } from 'lucide-react';
 
 interface HistoryItem {
   id: string;
@@ -32,19 +32,15 @@ export default function Home() {
     if (saved) {
       try {
         setHistory(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to parse history', e);
-      }
+      } catch (e) {}
     }
     const lastTime = localStorage.getItem('web2native_last_build');
-    if (lastTime) {
-      setLastBuildTime(Number(lastTime));
-    }
+    if (lastTime) setLastBuildTime(Number(lastTime));
   }, []);
 
   useEffect(() => {
     if (lastBuildTime) {
-      const checkRateLimit = () => {
+      const interval = setInterval(() => {
         const timeDiff = Date.now() - lastBuildTime;
         const oneDay = 24 * 60 * 60 * 1000;
         if (timeDiff < oneDay) {
@@ -52,14 +48,11 @@ export default function Home() {
           const h = Math.floor(remainingMs / (1000 * 60 * 60));
           const m = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
           const s = Math.floor((remainingMs % (1000 * 60)) / 1000);
-          const formatted = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-          setTimeRemaining(formatted);
+          setTimeRemaining(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
         } else {
           setTimeRemaining(null);
         }
-      };
-      checkRateLimit();
-      const interval = setInterval(checkRateLimit, 1000);
+      }, 1000);
       return () => clearInterval(interval);
     }
   }, [lastBuildTime]);
@@ -69,18 +62,8 @@ export default function Home() {
     localStorage.setItem('web2native_history', JSON.stringify(items));
   };
 
-  const updateHistoryItem = (id: string, updates: Partial<HistoryItem>) => {
-    setHistory(prev => {
-      const newHistory = prev.map(item => item.id === id ? { ...item, ...updates } : item);
-      localStorage.setItem('web2native_history', JSON.stringify(newHistory));
-      return newHistory;
-    });
-  };
-
   const clearHistory = () => {
-    if (confirm('Yakin ingin menghapus semua history?')) {
-      saveHistory([]);
-    }
+    if (confirm('Yakin ingin menghapus semua history?')) saveHistory([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -95,15 +78,12 @@ export default function Home() {
       const h = Math.floor(remainingMs / (1000 * 60 * 60));
       const m = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
       const s = Math.floor((remainingMs % (1000 * 60)) / 1000);
-      const formatted = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-      setError(`⚠️ RATE LIMIT: 1 build per 24 hours. Wait ${formatted} more.`);
+      setError(`⚠️ Rate limit: 1 build per 24 hours. Wait ${h}h ${m}m ${s}s.`);
       return;
     }
     
     let formattedUrl = websiteUrl.trim();
-    if (!/^https?:\/\//i.test(formattedUrl)) {
-      formattedUrl = 'https://' + formattedUrl;
-    }
+    if (!/^https?:\/\//i.test(formattedUrl)) formattedUrl = 'https://' + formattedUrl;
 
     setIsLoading(true);
     setError(null);
@@ -117,31 +97,17 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ appName, websiteUrl: formattedUrl }),
       });
-      
       const result = await response.json();
-      
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to initiate application build.');
-      }
+      if (!response.ok || !result.success) throw new Error(result.error || 'Build failed.');
       
       const newId = result.data.requestId;
       setRequestId(newId);
-      
       const now = Date.now();
       setLastBuildTime(now);
       localStorage.setItem('web2native_last_build', now.toString());
-      
-      const newItem: HistoryItem = {
-        id: newId,
-        appName,
-        websiteUrl: formattedUrl,
-        date: now,
-        status: 'PROCESSING'
-      };
-      saveHistory([newItem, ...history]);
-      
+      saveHistory([{ id: newId, appName, websiteUrl: formattedUrl, date: now, status: 'PROCESSING' }, ...history]);
     } catch (err: any) {
-      setError(err.message || 'System error occurred.');
+      setError(err.message);
       setIsLoading(false);
     }
   };
@@ -160,16 +126,14 @@ export default function Home() {
             setIsDone(true);
             setIsLoading(false);
             clearInterval(interval);
-            updateHistoryItem(requestId, {
-              status: 'DONE',
-              androidUrl: data.android_url,
-              iosUrl: data.ios_url
+            setHistory(prev => {
+              const newHistory = prev.map(item => item.id === requestId ? { ...item, status: 'DONE', androidUrl: data.android_url, iosUrl: data.ios_url } : item);
+              localStorage.setItem('web2native_history', JSON.stringify(newHistory));
+              return newHistory;
             });
           }
         }
-      } catch (err) {
-        console.error('Failed to check status', err);
-      }
+      } catch (err) {}
     };
     if (requestId && !isDone) {
       checkStatus();
@@ -179,291 +143,141 @@ export default function Home() {
   }, [requestId, isDone]);
 
   return (
-    <div className="min-h-screen bg-white text-black font-mono p-4 md:p-8">
-      <div className="max-w-2xl mx-auto">
-        
-        {/* HEADER - Neo Brutal */}
-        <div className="flex justify-between items-center mb-12 border-b-4 border-black pb-4">
-          <div 
-            className="flex items-center gap-3 cursor-pointer neo-shadow-sm p-2 bg-white border-2 border-black"
-            onClick={() => setShowHistory(false)}
-          >
-            <Hexagon className="w-6 h-6 text-black" />
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '4px solid black', paddingBottom: '1rem' }}>
+        <div className="neo-card" style={{ padding: '0.5rem 1rem', cursor: 'pointer' }} onClick={() => setShowHistory(false)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Hexagon size={24} />
             <div>
-              <span className="font-black text-xl tracking-tighter">SCRAPENATIVE</span>
-              <span className="block text-[10px] font-bold">NEO-BRUTAL v1.0</span>
+              <div style={{ fontWeight: 'bold', fontSize: '1.25rem' }}>SCRAPENATIVE</div>
+              <div style={{ fontSize: '0.6rem' }}>NEO-BRUTAL</div>
             </div>
           </div>
-          
-          <button 
-            onClick={() => setShowHistory(!showHistory)}
-            className="border-2 border-black p-2 bg-white neo-shadow-sm hover:bg-black hover:text-white transition-all"
-          >
-            <History className="w-5 h-5" />
-          </button>
         </div>
+        <button className="neo-button" style={{ padding: '0.5rem' }} onClick={() => setShowHistory(!showHistory)}>
+          <History size={20} />
+        </button>
+      </div>
 
-        {/* MAIN CONTENT */}
-        <AnimatePresence mode="wait">
-          {showHistory ? (
-            <motion.div 
-              key="history"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="space-y-4"
-            >
-              <div className="flex justify-between items-center border-2 border-black p-4 bg-white neo-shadow">
-                <h2 className="font-black text-xl tracking-tighter">📁 BUILD HISTORY</h2>
-                {history.length > 0 && (
-                  <button 
-                    onClick={clearHistory}
-                    className="border-2 border-black px-3 py-1 text-sm font-bold bg-red-500 text-white hover:bg-black transition-all"
-                  >
-                    CLEAR ALL
+      <AnimatePresence mode="wait">
+        {showHistory ? (
+          <motion.div key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="neo-card" style={{ padding: '1rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontWeight: 'bold' }}>📁 HISTORY</h2>
+              {history.length > 0 && <button className="neo-button" style={{ background: '#ff3366', padding: '0.25rem 0.75rem', fontSize: '0.75rem' }} onClick={clearHistory}>CLEAR</button>}
+            </div>
+            {history.length === 0 ? (
+              <div className="neo-card" style={{ padding: '3rem', textAlign: 'center' }}>
+                <p style={{ fontWeight: 'bold' }}>NO BUILDS YET</p>
+              </div>
+            ) : (
+              history.map(item => (
+                <div key={item.id} className="neo-card" style={{ padding: '1rem', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <div>
+                      <h3 style={{ fontWeight: 'bold' }}>{item.appName}</h3>
+                      <p style={{ fontSize: '0.75rem' }}>{item.websiteUrl}</p>
+                    </div>
+                    <span className="neo-border" style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: item.status === 'DONE' ? '#a3e635' : '#fbbf24' }}>{item.status}</span>
+                  </div>
+                  {item.status === 'DONE' ? (
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {item.androidUrl && <a href={item.androidUrl} className="neo-button" style={{ flex: 1, textAlign: 'center', padding: '0.75rem', textDecoration: 'none' }}>📱 ANDROID</a>}
+                      {item.iosUrl && <a href={item.iosUrl} className="neo-button" style={{ flex: 1, textAlign: 'center', padding: '0.75rem', textDecoration: 'none', background: 'white', color: 'black' }}>🍎 iOS</a>}
+                    </div>
+                  ) : (
+                    <div className="neo-border" style={{ padding: '0.75rem', textAlign: 'center', background: '#f3f4f6' }}><Loader2 style={{ display: 'inline', animation: 'spin 1s linear infinite' }} /> BUILDING...</div>
+                  )}
+                </div>
+              ))
+            )}
+          </motion.div>
+        ) : (
+          <motion.div key="build" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            {/* Hero */}
+            <div className="neo-card" style={{ padding: '2rem', textAlign: 'center', marginBottom: '1.5rem' }}>
+              <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>WEB → <span style={{ background: '#ffd700', padding: '0 0.25rem' }}>NATIVE</span></h1>
+              <p style={{ fontWeight: 'bold', fontSize: '0.875rem' }}>ZERO CODE • ANDROID & iOS • 100% FREE</p>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '1rem' }}>
+                <span className="neo-border" style={{ padding: '0.25rem 0.75rem', fontSize: '0.7rem' }}>⚡ FAST</span>
+                <span className="neo-border" style={{ padding: '0.25rem 0.75rem', fontSize: '0.7rem' }}>🔒 SECURE</span>
+                <span className="neo-border" style={{ padding: '0.25rem 0.75rem', fontSize: '0.7rem' }}>📱 NATIVE</span>
+              </div>
+            </div>
+
+            {/* Form */}
+            <div className="neo-card" style={{ overflow: 'hidden' }}>
+              <div style={{ padding: '1.5rem' }}>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '0.5rem' }}>APP NAME</label>
+                  <input className="neo-input" type="text" placeholder="MyAwesomeApp" value={appName} onChange={(e) => setAppName(e.target.value)} disabled={isLoading || isDone || !!requestId || !!timeRemaining} />
+                </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '0.5rem' }}>WEBSITE URL</label>
+                  <div style={{ position: 'relative' }}>
+                    <Globe style={{ position: 'absolute', left: '1rem', top: '1rem' }} size={20} />
+                    <input className="neo-input" style={{ paddingLeft: '2.5rem' }} type="text" placeholder="https://example.com" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} disabled={isLoading || isDone || !!requestId || !!timeRemaining} />
+                  </div>
+                </div>
+                {error && <div className="neo-border" style={{ padding: '0.75rem', background: '#fee2e2', marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}><AlertCircle size={18} /> {error}</div>}
+                {timeRemaining && <div className="neo-border" style={{ padding: '0.75rem', background: '#fef3c7', textAlign: 'center', fontWeight: 'bold', marginBottom: '1rem' }}>⏱️ LIMIT: {timeRemaining}</div>}
+              </div>
+              <div style={{ borderTop: '3px solid black', padding: '1.5rem', background: '#fafafa' }}>
+                {!requestId && !isDone && (
+                  <button className="neo-button" style={{ width: '100%', padding: '1rem', fontSize: '1.1rem' }} onClick={handleSubmit} disabled={isLoading || !!timeRemaining}>
+                    {timeRemaining ? '🚫 LIMIT REACHED' : isLoading ? <><Loader2 style={{ display: 'inline', animation: 'spin 1s linear infinite' }} /> PROCESSING...</> : '⚡ BUILD NOW'}
                   </button>
                 )}
-              </div>
-
-              {history.length === 0 ? (
-                <div className="border-4 border-black p-8 text-center bg-white neo-shadow-lg">
-                  <History className="w-12 h-12 mx-auto mb-4" />
-                  <p className="font-bold">NO BUILDS YET</p>
-                  <p className="text-sm mt-2">Start your first conversion!</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {history.map((item) => (
-                    <div key={item.id} className="border-3 border-black p-5 bg-white neo-shadow">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="font-black text-lg uppercase">{item.appName}</h3>
-                          <p className="text-xs font-mono mt-1 break-all">{item.websiteUrl}</p>
-                        </div>
-                        <span className={`border-2 border-black px-2 py-1 text-[10px] font-black ${
-                          item.status === 'DONE' ? 'bg-lime-300' : 'bg-yellow-300 animate-pulse'
-                        }`}>
-                          {item.status}
-                        </span>
-                      </div>
-                      
-                      <div className="flex gap-3 mt-3">
-                        {item.status === 'DONE' ? (
-                          <>
-                            {item.androidUrl && (
-                              <a href={item.androidUrl} target="_blank" rel="noreferrer" 
-                                 className="flex-1 border-2 border-black bg-black text-white text-center py-3 font-bold hover:bg-white hover:text-black transition-all neo-shadow-sm">
-                                📱 ANDROID
-                              </a>
-                            )}
-                            {item.iosUrl && (
-                              <a href={item.iosUrl} target="_blank" rel="noreferrer"
-                                 className="flex-1 border-2 border-black bg-white text-black text-center py-3 font-bold hover:bg-black hover:text-white transition-all neo-shadow-sm">
-                                🍎 iOS
-                              </a>
-                            )}
-                          </>
-                        ) : (
-                          <div className="w-full border-2 border-black bg-gray-100 text-center py-3 font-bold flex items-center justify-center gap-2">
-                            <Loader2 className="w-4 h-4 animate-spin" /> COMPILING...
-                          </div>
-                        )}
+                {(requestId || isLoading || isDone) && (
+                  <div>
+                    <div className="neo-card" style={{ padding: '1rem', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontWeight: 'bold' }}>STATUS</span>
+                        <span>{isDone ? '✓ COMPLETED' : <><Loader2 style={{ display: 'inline', animation: 'spin 1s linear infinite' }} /> BUILDING</>}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          ) : (
-            <motion.div 
-              key="builder"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="space-y-6"
-            >
-              {/* Hero Section */}
-              <div className="border-4 border-black p-6 text-center bg-white neo-shadow-lg">
-                <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">
-                  WEB → <span className="bg-yellow-300 px-2">NATIVE</span>
-                </h1>
-                <p className="font-bold text-sm">
-                  ZERO CODE • ANDROID & iOS • 100% FREE
-                </p>
-                <div className="mt-4 flex gap-2 justify-center">
-                  <span className="border-2 border-black px-2 py-1 text-[10px] font-black">⚡ FAST</span>
-                  <span className="border-2 border-black px-2 py-1 text-[10px] font-black">🔒 SECURE</span>
-                  <span className="border-2 border-black px-2 py-1 text-[10px] font-black">📱 NATIVE</span>
-                </div>
-              </div>
-
-              {/* Form Section */}
-              <div className="border-4 border-black bg-white neo-shadow-lg overflow-hidden">
-                <div className="p-6">
-                  <form onSubmit={handleSubmit} className="space-y-5">
-                    <div>
-                      <label className="block font-black text-sm mb-2 uppercase">APP NAME</label>
-                      <input
-                        type="text"
-                        placeholder="MyAwesomeApp"
-                        value={appName}
-                        onChange={(e) => setAppName(e.target.value)}
-                        disabled={isLoading || isDone || !!requestId || !!timeRemaining}
-                        className="w-full border-3 border-black p-4 font-mono font-bold focus:outline-none focus:neo-shadow disabled:bg-gray-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-black text-sm mb-2 uppercase">WEBSITE URL</label>
-                      <div className="relative">
-                        <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" />
-                        <input
-                          type="text"
-                          placeholder="https://example.com"
-                          value={websiteUrl}
-                          onChange={(e) => setWebsiteUrl(e.target.value)}
-                          disabled={isLoading || isDone || !!requestId || !!timeRemaining}
-                          className="w-full border-3 border-black p-4 pl-12 font-mono font-bold focus:outline-none focus:neo-shadow disabled:bg-gray-100"
-                        />
+                    {buildStatus && (
+                      <div className="neo-border" style={{ padding: '1rem', marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><span>📱 ANDROID</span><span>{buildStatus.android_status || 'WAITING'}</span></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>🍎 iOS</span><span>{buildStatus.ios_status || 'WAITING'}</span></div>
                       </div>
-                    </div>
-
-                    {error && (
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="border-3 border-red-500 bg-red-100 p-4 flex gap-2 items-start font-bold text-sm"
-                      >
-                        <AlertCircle className="w-5 h-5 shrink-0" />
-                        <p>{error}</p>
-                      </motion.div>
                     )}
-                    
-                    {timeRemaining && !error && (
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="border-3 border-yellow-500 bg-yellow-100 p-4 text-center font-bold"
-                      >
-                        ⏱️ RATE LIMIT: {timeRemaining} REMAINING
-                      </motion.div>
+                    {isDone && buildStatus && (
+                      <div>
+                        {buildStatus.android_url && <a href={buildStatus.android_url} className="neo-button" style={{ display: 'block', textAlign: 'center', padding: '1rem', marginBottom: '0.5rem', textDecoration: 'none' }}>📱 DOWNLOAD ANDROID</a>}
+                        {buildStatus.ios_url && <a href={buildStatus.ios_url} className="neo-button" style={{ display: 'block', textAlign: 'center', padding: '1rem', marginBottom: '0.5rem', textDecoration: 'none', background: 'white', color: 'black' }}>🍎 DOWNLOAD iOS</a>}
+                        <button className="neo-button" style={{ width: '100%', padding: '0.75rem', background: '#e5e5e5', color: 'black' }} onClick={() => { setIsDone(false); setBuildStatus(null); setRequestId(null); setAppName(''); setWebsiteUrl(''); }}>➕ NEW CONVERSION</button>
+                      </div>
                     )}
-                  </form>
-                </div>
-
-                <div className="border-t-4 border-black bg-gray-50 p-6">
-                  {!requestId && !isDone && (
-                    <button
-                      onClick={handleSubmit}
-                      disabled={isLoading || !!timeRemaining}
-                      className="w-full border-3 border-black bg-black text-white py-4 font-black text-lg uppercase neo-shadow-lg hover:bg-white hover:text-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {timeRemaining ? '🚫 LIMIT REACHED' : isLoading ? <><Loader2 className="inline w-5 h-5 animate-spin mr-2" /> PROCESSING...</> : '⚡ BUILD NOW ⚡'}
-                    </button>
-                  )}
-
-                  <AnimatePresence>
-                    {(requestId || isLoading || isDone) && (
-                      <motion.div 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        className="space-y-4 mt-4"
-                      >
-                        <div className="border-3 border-black p-4 bg-white neo-shadow-sm">
-                          <div className="flex justify-between items-center">
-                            <span className="font-black text-sm uppercase">STATUS</span>
-                            <span className="font-black text-xs">
-                              {isDone ? '✓ COMPLETED' : <><Loader2 className="inline w-4 h-4 animate-spin mr-1" /> BUILDING</>}
-                            </span>
-                          </div>
-                          <div className="mt-3 h-2 bg-gray-200 border border-black">
-                            <motion.div 
-                              className="h-full bg-black"
-                              initial={{ width: "0%" }}
-                              animate={{ width: isDone ? "100%" : "60%" }}
-                              transition={{ duration: 0.5 }}
-                            />
-                          </div>
-                        </div>
-
-                        {buildStatus && (
-                          <div className="border-3 border-black p-4 bg-white">
-                            <div className="flex justify-between mb-2">
-                              <span className="font-bold text-sm">📱 ANDROID</span>
-                              <span className={`font-black text-xs ${buildStatus.android_status === 'DONE' ? 'text-green-600' : 'text-yellow-600'}`}>
-                                {buildStatus.android_status || 'WAITING'}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="font-bold text-sm">🍎 iOS</span>
-                              <span className={`font-black text-xs ${buildStatus.ios_status === 'DONE' ? 'text-green-600' : 'text-yellow-600'}`}>
-                                {buildStatus.ios_status || 'WAITING'}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
-                        {isDone && buildStatus && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="space-y-3"
-                          >
-                            {buildStatus.android_url && (
-                              <a href={buildStatus.android_url} target="_blank" rel="noreferrer"
-                                 className="block border-3 border-black bg-black text-white text-center py-4 font-black text-lg neo-shadow-lg hover:bg-white hover:text-black transition-all">
-                                📱 DOWNLOAD ANDROID APK
-                              </a>
-                            )}
-                            {buildStatus.ios_url && (
-                              <a href={buildStatus.ios_url} target="_blank" rel="noreferrer"
-                                 className="block border-3 border-black bg-white text-black text-center py-4 font-black text-lg hover:bg-black hover:text-white transition-all">
-                                🍎 DOWNLOAD iOS IPA
-                              </a>
-                            )}
-                            <button 
-                              onClick={() => {
-                                setIsDone(false);
-                                setBuildStatus(null);
-                                setRequestId(null);
-                                setAppName('');
-                                setWebsiteUrl('');
-                              }}
-                              className="w-full border-2 border-black py-3 font-bold text-sm uppercase hover:bg-black hover:text-white transition-all"
-                            >
-                              ➕ NEW CONVERSION
-                            </button>
-                          </motion.div>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                  </div>
+                )}
               </div>
+            </div>
 
-              {/* Info Section */}
-              <div className="border-4 border-black p-6 bg-white neo-shadow-lg">
-                <h3 className="font-black text-xl mb-4 text-center">⚙️ HOW IT WORKS</h3>
-                <div className="space-y-4">
-                  {[
-                    { icon: "1", text: "Enter your app name and website URL" },
-                    { icon: "2", text: "System wraps your site in native container" },
-                    { icon: "3", text: "Download APK (Android) & IPA (iOS)" }
-                  ].map((step, i) => (
-                    <div key={i} className="flex items-center gap-3 border-2 border-black p-3">
-                      <div className="w-8 h-8 bg-black text-white flex items-center justify-center font-black">{step.icon}</div>
-                      <span className="font-bold text-sm">{step.text}</span>
-                    </div>
-                  ))}
+            {/* How it works */}
+            <div className="neo-card" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
+              <h3 style={{ fontWeight: 'bold', fontSize: '1.25rem', textAlign: 'center', marginBottom: '1rem' }}>⚙️ HOW IT WORKS</h3>
+              {['Enter your app name and website URL', 'System wraps your site in native container', 'Download APK & IPA'].map((step, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', border: '2px solid black', padding: '0.75rem' }}>
+                  <div style={{ width: '2rem', height: '2rem', background: 'black', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{i + 1}</div>
+                  <span style={{ fontWeight: 'bold' }}>{step}</span>
                 </div>
-                <div className="mt-6 pt-4 border-t-2 border-black text-center">
-                  <p className="text-[10px] font-black uppercase tracking-wider">Powered by SANN404 FORUM</p>
-                </div>
+              ))}
+              <div style={{ borderTop: '2px solid black', marginTop: '1rem', paddingTop: '1rem', textAlign: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                POWERED BY SANN404 FORUM
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
