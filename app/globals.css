@@ -1,19 +1,152 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #FDFBF7;
-  --color-foreground: #000000;
-  --color-surface: #F4F2EE;
-  --color-surface-hover: #EBE8E3;
-  --color-border: #E5E1D8;
-  --color-primary: #000000;
-  --color-primary-hover: #222222;
-  --color-accent: #FF895D; 
+  --color-black: #000000;
+  --color-white: #FFFFFF;
+  --color-red: #FF3366;
+  --color-blue: #3366FF;
+  --color-yellow: #FFD700;
+  --color-orange: #FF895D;
+  --shadow-neo: 4px 4px 0px 0px #000000;
+  --shadow-neo-sm: 2px 2px 0px 0px #000000;
+  --shadow-neo-lg: 6px 6px 0px 0px #000000;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
+  background-color: #FFFFFF;
+  color: #000000;
+  font-family: 'Courier New', 'Space Mono', 'SF Mono', monospace;
+  border-left: 6px solid #000000;
+  border-right: 6px solid #000000;
+  min-height: 100vh;
+}
+
+/* Neo-Brutalism Utility Classes */
+.neo-border {
+  border: 3px solid #000000;
+}
+
+.neo-shadow {
+  box-shadow: var(--shadow-neo);
+}
+
+.neo-shadow-sm {
+  box-shadow: var(--shadow-neo-sm);
+}
+
+.neo-shadow-lg {
+  box-shadow: var(--shadow-neo-lg);
+}
+
+.neo-card {
+  background: #FFFFFF;
+  border: 3px solid #000000;
+  box-shadow: var(--shadow-neo);
+  transition: all 0.1s ease;
+}
+
+.neo-card:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.neo-button {
+  background: #000000;
+  border: 3px solid #000000;
+  box-shadow: var(--shadow-neo);
+  color: #FFFFFF;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.neo-button:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.neo-button-primary {
+  background: #FFD700;
+  color: #000000;
+}
+
+.neo-button-primary:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.neo-input {
+  border: 3px solid #000000;
+  background: #FFFFFF;
+  padding: 1rem;
+  font-family: monospace;
+  font-weight: bold;
+  transition: all 0.1s ease;
+}
+
+.neo-input:focus {
+  outline: none;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo);
+}
+
+.neo-tag {
+  display: inline-block;
+  border: 2px solid #000000;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  background: #FFFFFF;
+}
+
+.neo-tag-success {
+  background: #00FF00;
+  color: #000000;
+}
+
+.neo-tag-warning {
+  background: #FFD700;
+  color: #000000;
+}
+
+.neo-tag-error {
+  background: #FF3366;
+  color: #FFFFFF;
+}
+
+/* Animations */
+@keyframes neo-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.neo-pulse {
+  animation: neo-blink 1s step-end infinite;
+}
+
+/* Scrollbar Neo */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FFFFFF;
+  border-left: 2px solid #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #000000;
+  border: 2px solid #FFFFFF;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF3366;
 }
