@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Neo-Brutalism + Glassmorphism pada Box */
+/* Neo-Brutalism + Glassmorphism */
 :root {
   --black: #000000;
   --white: #ffffff;
@@ -16,47 +16,60 @@
   box-sizing: border-box;
 }
 
-/* Background solid (tidak blur) */
+/* BACKGROUND - Ganti di sini! */
 body {
-  background: #f0f0f0;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   font-family: 'Courier New', 'Space Mono', monospace;
   min-height: 100vh;
   padding: 2rem;
 }
 
-/* Glassmorphism pada BOX/CARD (bukan background) */
+/* Atau pakai gambar background - uncomment yang ini dan comment yang di atas */
+/* body {
+  background-image: url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+} */
+
+/* Glassmorphism pada BOX - INI YANG DIBUAT BLUR TRANSPARAN */
 .glass-neo {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(12px);
-  border: 3px solid var(--black);
+  border: 3px solid rgba(255, 255, 255, 0.3);
   box-shadow: var(--shadow-neo);
   transition: all 0.1s ease;
+  color: white;
+}
+
+.glass-neo:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .glass-neo:active {
   transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0px 0px var(--black);
+  box-shadow: 2px 2px 0px 0px black;
 }
 
 .glass-neo-dark {
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(12px);
-  border: 3px solid var(--white);
+  border: 3px solid white;
   box-shadow: var(--shadow-neo);
-  color: var(--white);
+  color: white;
 }
 
 .glass-neo-dark:active {
   transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0px 0px var(--white);
+  box-shadow: 2px 2px 0px 0px white;
 }
 
 /* Neo Button Styles */
 .neo-button {
-  background: var(--black);
-  border: 3px solid var(--black);
+  background: black;
+  border: 3px solid black;
   box-shadow: var(--shadow-neo);
-  color: var(--white);
+  color: white;
   font-weight: bold;
   text-transform: uppercase;
   cursor: pointer;
@@ -65,15 +78,15 @@ body {
 
 .neo-button:active {
   transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0px 0px var(--black);
+  box-shadow: 2px 2px 0px 0px black;
 }
 
 .neo-button-glass {
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(8px);
-  border: 3px solid var(--white);
+  border: 3px solid white;
   box-shadow: var(--shadow-neo);
-  color: var(--white);
+  color: white;
   font-weight: bold;
   text-transform: uppercase;
   cursor: pointer;
@@ -82,27 +95,33 @@ body {
 
 .neo-button-glass:active {
   transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0px 0px var(--white);
+  box-shadow: 2px 2px 0px 0px white;
 }
 
 .neo-input {
-  border: 3px solid var(--black);
-  background: rgba(255, 255, 255, 0.95);
+  border: 3px solid white;
+  background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(4px);
   padding: 1rem;
   font-family: monospace;
   font-weight: bold;
   width: 100%;
+  color: white;
+}
+
+.neo-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .neo-input:focus {
   outline: none;
   transform: translate(-2px, -2px);
   box-shadow: var(--shadow-neo);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .neo-border {
-  border: 2px solid var(--black);
+  border: 2px solid white;
 }
 
 /* Animations */
@@ -126,11 +145,11 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #ddd;
-  border-left: 2px solid var(--black);
+  background: rgba(255, 255, 255, 0.1);
+  border-left: 2px solid white;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--black);
-  border: 2px solid #ddd;
+  background: white;
+  border: 2px solid rgba(0, 0, 0, 0.5);
 }
