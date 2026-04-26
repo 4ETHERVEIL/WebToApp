@@ -193,7 +193,7 @@ export default function Home() {
         >
           <Sparkles size={24} style={{ color: '#ffd700' }} />
           <div>
-            <div style={{ fontWeight: '900', fontSize: '1.25rem', letterSpacing: '-0.05em' }}>WEBtoAPP</div>
+            <div style={{ fontWeight: '900', fontSize: '1.25rem', letterSpacing: '-0.05em' }}>Web2App</div>
             <div style={{ fontSize: '0.6rem', fontWeight: 'bold', opacity: 0.8 }}>NEO • GLASS</div>
           </div>
         </div>
